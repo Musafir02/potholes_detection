@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SusX Pothole Command Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <style>
     :root {
@@ -148,9 +151,17 @@
     }
 
     @keyframes ping {
-      0% { box-shadow: 0 0 0 0 rgba(31, 157, 87, 0.45); }
-      70% { box-shadow: 0 0 0 10px rgba(31, 157, 87, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(31, 157, 87, 0); }
+      0% {
+        box-shadow: 0 0 0 0 rgba(31, 157, 87, 0.45);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(31, 157, 87, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(31, 157, 87, 0);
+      }
     }
 
     .updated {
@@ -220,10 +231,21 @@
       z-index: 1;
     }
 
-    .stat-total .stat-value { color: var(--accent); }
-    .stat-severe .stat-value { color: var(--severe); }
-    .stat-moderate .stat-value { color: var(--moderate); }
-    .stat-minor .stat-value { color: var(--minor); }
+    .stat-total .stat-value {
+      color: var(--accent);
+    }
+
+    .stat-severe .stat-value {
+      color: var(--severe);
+    }
+
+    .stat-moderate .stat-value {
+      color: var(--moderate);
+    }
+
+    .stat-minor .stat-value {
+      color: var(--minor);
+    }
 
     .workspace {
       min-height: 0;
@@ -559,8 +581,117 @@
         justify-content: flex-start;
       }
     }
+
+    .btn-report {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, #111827, #1e3a5f);
+      color: #fff;
+      font-family: Manrope, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-report:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+    }
+
+    .btn-report:active {
+      transform: scale(0.97);
+    }
+
+    .btn-report svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    .report-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .btn-dots {
+      background: rgba(100, 116, 139, 0.1);
+      border: none;
+      border-radius: 6px;
+      width: 28px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 800;
+      letter-spacing: 1px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-dots:hover {
+      background: rgba(100, 116, 139, 0.22);
+    }
+
+    .action-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+      z-index: 50;
+      min-width: 120px;
+      overflow: hidden;
+    }
+
+    .action-menu.open {
+      display: block;
+    }
+
+    .action-opt {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      background: none;
+      font-family: Manrope, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #334155;
+      transition: background 0.12s;
+    }
+
+    .action-opt:hover {
+      background: #f1f5f9;
+    }
+
+    .action-opt.opt-fixed { color: #0f766e; }
+    .action-opt.opt-false { color: #b45309; }
+    .action-opt.opt-delete { color: #dc2626; }
   </style>
 </head>
+
 <body>
   <div class="shell">
     <header class="topbar">
@@ -577,6 +708,13 @@
           <span id="live-text">Live</span>
         </div>
         <div class="updated" id="last-update">Connecting...</div>
+        <button class="btn-report" onclick="generateReport()">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6zm2-7h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z" />
+          </svg>
+          Export Report
+        </button>
       </div>
     </header>
 
@@ -650,10 +788,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyBnVngROUogMa1r08TFs_oZdQgVqMJBZFs",
+      apiKey: "kgB5RA7NGONmr5TU0riMgrRQIphpkwlYFR3LCo7l",
       authDomain: "pothole-map-38d98.firebaseapp.com",
       databaseURL: "https://pothole-map-38d98-default-rtdb.firebaseio.com",
       projectId: "pothole-map-38d98",
@@ -664,6 +804,130 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const allPotholes = {};
+
+    function generateReport() {
+      try {
+        if (!window.jspdf) { alert('PDF library still loading. Please wait a moment and try again.'); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const entries = Object.values(allPotholes);
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+        doc.setFillColor(17, 24, 39);
+        doc.rect(0, 0, 210, 38, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(255, 255, 255);
+        doc.text('POTHOLE INCIDENT REPORT', 14, 16);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(180, 198, 220);
+        doc.text('SusX Automated Road Monitoring System', 14, 24);
+        doc.text(`Generated: ${dateStr} at ${timeStr}`, 14, 31);
+        doc.text(`Reference: SusX-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(entries.length).padStart(4, '0')}`, 130, 31);
+
+        let y = 48;
+        doc.setTextColor(17, 24, 39);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('To: Municipal Road Authority / Public Works Department', 14, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text('Subject: Automated Pothole Detection Report - Request for Road Maintenance', 14, y);
+        y += 10;
+        doc.setFontSize(9);
+        const intro = 'This report has been auto-generated by the SusX IoT road monitoring system using accelerometer-based anomaly detection mounted on a moving vehicle. Each entry below represents a verified road surface defect with GPS coordinates, severity classification, and impact force measurement.';
+        const introLines = doc.splitTextToSize(intro, 182);
+        doc.text(introLines, 14, y);
+        y += introLines.length * 5 + 6;
+
+        const severeCount = entries.filter(e => e.severity === 'Severe').length;
+        const moderateCount = entries.filter(e => e.severity === 'Moderate').length;
+        const minorCount = entries.filter(e => e.severity === 'Minor').length;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('Summary', 14, y);
+        y += 3;
+
+        doc.autoTable({
+          startY: y,
+          head: [['Metric', 'Value']],
+          body: [
+            ['Total Potholes Detected', String(entries.length)],
+            ['Severe (Immediate Action)', String(severeCount)],
+            ['Moderate (Scheduled Repair)', String(moderateCount)],
+            ['Minor (Monitor)', String(minorCount)],
+            ['Detection Period', dateStr],
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [17, 24, 39], fontSize: 9, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } },
+          margin: { left: 14, right: 14 },
+        });
+
+        y = doc.lastAutoTable.finalY + 12;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('Detailed Pothole Inventory', 14, y);
+        y += 3;
+
+        const tableData = entries.map((e, i) => [
+          String(i + 1),
+          e.severity || 'Minor',
+          typeof e.lat === 'number' ? e.lat.toFixed(6) : '-',
+          typeof e.lng === 'number' ? e.lng.toFixed(6) : '-',
+          e.g_force ? `${e.g_force.toFixed(2)}g` : '-',
+          e.timestamp ? new Date(e.timestamp * 1000).toLocaleString('en-IN') : '-',
+          e.confirmed ? 'Yes' : 'No',
+        ]);
+
+        doc.autoTable({
+          startY: y,
+          head: [['#', 'Severity', 'Latitude', 'Longitude', 'Force', 'Detected At', 'Confirmed']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: [17, 24, 39], fontSize: 8, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 22 },
+            4: { cellWidth: 18 },
+            6: { cellWidth: 20 },
+          },
+          margin: { left: 14, right: 14 },
+          didParseCell: function (data) {
+            if (data.section === 'body' && data.column.index === 1) {
+              const val = data.cell.raw;
+              if (val === 'Severe') data.cell.styles.textColor = [230, 57, 70];
+              else if (val === 'Moderate') data.cell.styles.textColor = [180, 120, 0];
+              else data.cell.styles.textColor = [31, 157, 87];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 14;
+        const pageH = doc.internal.pageSize.getHeight();
+        const footY = finalY > pageH - 30 ? (doc.addPage(), 20) : finalY;
+
+        doc.setDrawColor(200);
+        doc.line(14, footY, 196, footY);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('This is a system-generated report from SusX Pothole Detection System. Data accuracy depends on sensor calibration and GPS signal quality.', 14, footY + 5);
+        doc.text('For verification, contact the SusX monitoring team or visit the live dashboard.', 14, footY + 10);
+
+        doc.save('SusX_Pothole_Report_' + now.toISOString().slice(0, 10) + '.pdf');
+      } catch (err) { alert('Report generation failed: ' + err.message); console.error(err); }
+    }
 
     const map = L.map("map", { zoomControl: true }).setView([19.0760, 72.8777], 13);
 
@@ -763,7 +1027,15 @@
       item.innerHTML = `
         <div class="report-top">
           <span class="severity-chip ${chipClass(severity)}">${severity}</span>
-          ${data.confirmed ? '<span class="confirm-chip">Confirmed</span>' : ""}
+          ${data.confirmed ? '<span class="confirm-chip">Confirmed</span>' : ''}
+          <div class="action-wrap">
+            <button class="btn-dots" onclick="event.stopPropagation(); toggleMenu(this)">&#8942;</button>
+            <div class="action-menu">
+              <button class="action-opt opt-fixed" onclick="event.stopPropagation(); potholeAction('${key}','fixed')">&#10003; Fixed</button>
+              <button class="action-opt opt-false" onclick="event.stopPropagation(); potholeAction('${key}','false')">&#10007; False</button>
+              <button class="action-opt opt-delete" onclick="event.stopPropagation(); potholeAction('${key}','delete')">&#128465; Delete</button>
+            </div>
+          </div>
         </div>
         <div class="coords">${toCoords(data.lat, data.lng)}</div>
         <div class="meta">
@@ -792,7 +1064,15 @@
       card.innerHTML = `
         <div class="report-top">
           <span class="severity-chip ${chipClass(severity)}">${severity}</span>
-          ${data.confirmed ? '<span class="confirm-chip">Confirmed</span>' : ""}
+          ${data.confirmed ? '<span class="confirm-chip">Confirmed</span>' : ''}
+          <div class="action-wrap">
+            <button class="btn-dots" onclick="event.stopPropagation(); toggleMenu(this)">&#8942;</button>
+            <div class="action-menu">
+              <button class="action-opt opt-fixed" onclick="event.stopPropagation(); potholeAction('${key}','fixed')">&#10003; Fixed</button>
+              <button class="action-opt opt-false" onclick="event.stopPropagation(); potholeAction('${key}','false')">&#10007; False</button>
+              <button class="action-opt opt-delete" onclick="event.stopPropagation(); potholeAction('${key}','delete')">&#128465; Delete</button>
+            </div>
+          </div>
         </div>
         <div class="coords">${toCoords(data.lat, data.lng)}</div>
         <div class="meta">
@@ -802,6 +1082,45 @@
         </div>
       `;
     }
+
+    function toggleMenu(btn) {
+      var menu = btn.nextElementSibling;
+      var wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.action-menu.open').forEach(function(m) { m.classList.remove('open'); });
+      if (!wasOpen) menu.classList.add('open');
+    }
+
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.action-menu.open').forEach(function(m) { m.classList.remove('open'); });
+    });
+
+    function potholeAction(key, action) {
+      document.querySelectorAll('.action-menu.open').forEach(function(m) { m.classList.remove('open'); });
+      var msgs = { fixed: 'Mark as fixed and remove?', false: 'Mark as false report and remove?', delete: 'Delete this pothole?' };
+      if (!confirm(msgs[action])) return;
+      db.ref('/potholes/' + key).remove()
+        .catch(function(err) { alert('Failed: ' + err.message); });
+    }
+
+    db.ref("/potholes").on("child_removed", (snapshot) => {
+      const key = snapshot.key;
+      const data = snapshot.val();
+
+      if (markers[key]) {
+        map.removeLayer(markers[key]);
+        delete markers[key];
+      }
+
+      const card = document.getElementById('report-' + key);
+      if (card) card.remove();
+
+      delete allPotholes[key];
+
+      const severity = (data && data.severity) || 'Minor';
+      counts.total = Math.max(0, counts.total - 1);
+      counts[severity] = Math.max(0, (counts[severity] || 0) - 1);
+      updateCounters();
+    });
 
     db.ref("/potholes").on("child_added", (snapshot) => {
       const data = snapshot.val();
@@ -818,6 +1137,7 @@
       }
 
       addReportCard(key, data);
+      allPotholes[key] = data;
 
       const severity = data.severity || "Minor";
       counts.total += 1;
@@ -840,6 +1160,7 @@
       }
 
       updateReportCard(key, data);
+      allPotholes[key] = data;
       document.getElementById("last-update").textContent =
         "Updated " + new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     });
@@ -858,4 +1179,5 @@
     });
   </script>
 </body>
+
 </html>
