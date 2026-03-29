@@ -946,10 +946,6 @@
     </div>
 
     <div class="topbar-actions">
-      <button class="btn" id="toggle-cluster-btn" onclick="toggleCluster()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/></svg>
-        Cluster
-      </button>
       <button class="btn btn-primary" onclick="exportPDF()">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         Export PDF
@@ -979,18 +975,6 @@
     <div class="metric m-minor">
       <div class="metric-label">Minor</div>
       <div><span class="metric-value" id="m-minor">0</span><span class="metric-unit">< 3g</span></div>
-    </div>
-    <div class="metric m-conf">
-      <div class="metric-label">Avg Confidence</div>
-      <div><span class="metric-value" id="m-conf">--</span><span class="metric-unit">%</span></div>
-    </div>
-    <div class="metric m-speed">
-      <div class="metric-label">Avg Speed</div>
-      <div><span class="metric-value" id="m-speed">--</span><span class="metric-unit">km/h</span></div>
-    </div>
-    <div class="metric m-uptime">
-      <div class="metric-label">Session</div>
-      <div><span class="metric-value" id="m-uptime">0</span><span class="metric-unit">min</span></div>
     </div>
   </section>
 
@@ -1114,14 +1098,6 @@
         <div class="stat-row">
           <span class="sk">Buffered</span>
           <span class="sv" id="stat-buffered">0</span>
-        </div>
-      </div>
-
-      <!-- Active devices -->
-      <div class="rpanel-section">
-        <div class="rp-title">Active Devices</div>
-        <div id="device-list">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">No devices yet</div>
         </div>
       </div>
 
