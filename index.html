@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SusX — Pothole Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+  <style>
+    :root {
+      --bg0: #060810;
+      --bg1: #0c1018;
+      --bg2: #121824;
+      --bg3: #1a2030;
+      --bg4: #222840;
+      --border: rgba(255,255,255,0.06);
+      --border2: rgba(255,255,255,0.1);
+      --t1: #e8edf5;
+      --t2: #8892a4;
+      --t3: #4a5568;
+      --severe: #ff3b5c;
+      --severe-dim: rgba(255,59,92,0.15);
+      --severe-glow: rgba(255,59,92,0.4);
+      --moderate: #ff9f0a;
+      --moderate-dim: rgba(255,159,10,0.15);
+      --moderate-glow: rgba(255,159,10,0.4);
+      --minor: #30d158;
+      --minor-dim: rgba(48,209,88,0.15);
+      --minor-glow: rgba(48,209,88,0.4);
+      --accent: #4f8eff;
+      --accent-dim: rgba(79,142,255,0.15);
+      --accent-glow: rgba(79,142,255,0.3);
+      --purple: #bf5af2;
+      --cyan: #32ade6;
+      --r: 12px;
+      --r-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg0);
+      color: var(--t1);
+      overflow: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px);
+      pointer-events: none;
+    }
+
+    /* Ambient glow */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 900px 600px at 20% 0%, rgba(79,142,255,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 600px 400px at 80% 100%, rgba(255,59,92,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: 56px 88px 1fr;
+      width: 100%; height: 100%;
+      gap: 0;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px;
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      position: relative; z-index: 100;
+    }
+
+    .topbar::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.3;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .brand-mark {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--bg0);
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      padding: 5px 10px; border-radius: 6px;
+    }
+
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px; font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--t1);
+    }
+
+    .brand-sub {
+      font-size: 10px; font-weight: 500;
+      color: var(--t3); letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .topbar-center {
+      display: flex; align-items: center; gap: 24px;
+    }
+
+    .conn-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      border: 1px solid var(--border2);
+      background: var(--bg2);
+      font-size: 11px; font-weight: 600;
+      color: var(--t2);
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .conn-pill.live {
+      border-color: rgba(48,209,88,0.3);
+      background: rgba(48,209,88,0.08);
+      color: var(--minor);
+    }
+
+    .conn-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .conn-pill.live .conn-dot {
+      animation: live-pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(48,209,88,0.5); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 500;
+      color: var(--t2);
+      letter-spacing: 0.05em;
+    }
+
+    .last-sync {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--t3);
+      letter-spacing: 0.05em;
+    }
+
+    .topbar-actions {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border2);
+      background: var(--bg2);
+      color: var(--t2);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg3);
+      border-color: var(--border2);
+      color: var(--t1);
+    }
+
+    .btn.btn-danger:hover {
+      background: var(--severe-dim);
+      border-color: var(--severe);
+      color: var(--severe);
+    }
+
+    .btn.btn-primary {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn.btn-primary:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── METRICS STRIP ── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg1);
+    }
+
+    .metric {
+      padding: 14px 18px;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s;
+    }
+
+    .metric:last-child { border-right: none; }
+    .metric:hover { background: var(--bg2); }
+
+    .metric::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+
+    .metric.m-total::before { background: linear-gradient(90deg, var(--accent), transparent); }
+    .metric.m-severe::before { background: linear-gradient(90deg, var(--severe), transparent); }
+    .metric.m-moderate::before { background: linear-gradient(90deg, var(--moderate), transparent); }
+    .metric.m-minor::before { background: linear-gradient(90deg, var(--minor), transparent); }
+    .metric.m-conf::before { background: linear-gradient(90deg, var(--purple), transparent); }
+    .metric.m-speed::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+    .metric.m-uptime::before { background: linear-gradient(90deg, #ff9f0a, transparent); }
+
+    .metric-label {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--t3);
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px; font-weight: 700; line-height: 1;
+      transition: all 0.4s;
+    }
+
+    .m-total .metric-value { color: var(--accent); }
+    .m-severe .metric-value { color: var(--severe); }
+    .m-moderate .metric-value { color: var(--moderate); }
+    .m-minor .metric-value { color: var(--minor); }
+    .m-conf .metric-value { color: var(--purple); }
+    .m-speed .metric-value { color: var(--cyan); }
+    .m-uptime .metric-value { color: var(--moderate); }
+
+    .metric-unit {
+      font-size: 10px; color: var(--t3); font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 2px;
+    }
+
+    .metric-trend {
+      font-size: 9px; font-weight: 600;
+      color: var(--t3);
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── WORKSPACE ── */
+    .workspace {
+      display: grid;
+      grid-template-columns: 360px 1fr 260px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      display: flex; flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: var(--bg1);
+      min-height: 0;
+    }
+
+    .sidebar-head {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg1);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .sidebar-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 99px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(79,142,255,0.25);
+    }
+
+    .search-wrap {
+      position: relative; margin-bottom: 8px;
+    }
+
+    .search-wrap svg {
+      position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; stroke: var(--t3); fill: none; stroke-width: 2;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%; padding: 7px 10px 7px 28px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--t1);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input::placeholder { color: var(--t3); }
+    .search-input:focus { border-color: var(--accent); }
+
+    .filter-row {
+      display: flex; gap: 5px;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--t3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .chip:hover, .chip.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .chip.chip-severe.active { border-color: var(--severe); background: var(--severe-dim); color: var(--severe); }
+    .chip.chip-moderate.active { border-color: var(--moderate); background: var(--moderate-dim); color: var(--moderate); }
+    .chip.chip-minor.active { border-color: var(--minor); background: var(--minor-dim); color: var(--minor); }
+
+    .sort-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg1);
+    }
+
+    .sort-label {
+      font-size: 10px; color: var(--t3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sort-btns { display: flex; gap: 4px; }
+
+    .sort-btn {
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--t3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .sort-btn.active, .sort-btn:hover {
+      background: var(--bg3);
+      border-color: var(--border2);
+      color: var(--t1);
+    }
+
+    .feed {
+      overflow-y: auto; flex: 1;
+      padding: 6px;
+    }
+
+    .feed::-webkit-scrollbar { width: 4px; }
+    .feed::-webkit-scrollbar-track { background: transparent; }
+    .feed::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 99px; }
+
+    .feed-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 200px;
+      color: var(--t3);
+      font-size: 12px; font-weight: 500;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── REPORT CARD ── */
+    .rcard {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--bg2);
+      padding: 11px 12px 10px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      animation: cardIn 0.3s ease;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .rcard::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+
+    .rcard.s-Severe::before { background: var(--severe); }
+    .rcard.s-Moderate::before { background: var(--moderate); }
+    .rcard.s-Minor::before { background: var(--minor); }
+
+    .rcard:hover {
+      background: var(--bg3);
+      border-color: var(--border2);
+      transform: translateX(2px);
+    }
+
+    .rcard.selected {
+      border-color: var(--accent);
+      background: rgba(79,142,255,0.06);
+    }
+
+    .rcard-top {
+      display: flex; align-items: center; gap: 5px;
+      margin-bottom: 7px;
+    }
+
+    .sev-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 2px 7px; border-radius: 4px;
+    }
+
+    .sb-Severe { background: var(--severe-dim); color: var(--severe); }
+    .sb-Moderate { background: var(--moderate-dim); color: var(--moderate); }
+    .sb-Minor { background: var(--minor-dim); color: var(--minor); }
+
+    .conf-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(191,90,242,0.12); color: var(--purple);
+    }
+
+    .new-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 700;
+      padding: 2px 5px; border-radius: 3px;
+      background: rgba(79,142,255,0.2); color: var(--accent);
+      animation: newblink 2s ease-in-out 3;
+    }
+
+    @keyframes newblink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .rcard-menu {
+      margin-left: auto; position: relative;
+    }
+
+    .dots {
+      background: transparent;
+      border: none; border-radius: 4px;
+      width: 22px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--t3);
+      font-size: 13px; font-weight: 800;
+      transition: all 0.2s;
+    }
+
+    .dots:hover { background: var(--bg4); color: var(--t1); }
+
+    .ddmenu {
+      display: none;
+      position: absolute; top: 100%; right: 0; margin-top: 3px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: var(--r-sm);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      z-index: 200; min-width: 140px; overflow: hidden;
+    }
+
+    .ddmenu.open { display: block; }
+
+    .dditem {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 9px 14px;
+      border: none; background: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; color: var(--t2);
+      transition: background 0.15s;
+      text-align: left;
+    }
+
+    .dditem:hover { background: var(--bg4); }
+    .dditem.dd-ok { color: var(--minor); }
+    .dditem.dd-warn { color: var(--moderate); }
+    .dditem.dd-del { color: var(--severe); }
+
+    .rcard-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--t2);
+      margin-bottom: 7px;
+      letter-spacing: 0.02em;
+    }
+
+    .rcard-meta {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--t3); font-weight: 500;
+      flex-wrap: wrap;
+    }
+
+    .rcard-meta span { display: inline-flex; align-items: center; gap: 3px; }
+
+    .rcard-time {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--t3);
+    }
+
+    .rcard-bar {
+      margin-top: 8px; height: 2px;
+      background: var(--bg4); border-radius: 2px; overflow: hidden;
+    }
+
+    .rcard-bar-fill {
+      height: 100%; border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+
+    .s-Severe .rcard-bar-fill { background: linear-gradient(90deg, var(--severe), var(--moderate)); }
+    .s-Moderate .rcard-bar-fill { background: linear-gradient(90deg, var(--moderate), var(--minor)); }
+    .s-Minor .rcard-bar-fill { background: linear-gradient(90deg, var(--minor), var(--cyan)); }
+
+    /* ── MAP ── */
+    .map-wrap {
+      position: relative; min-height: 0; overflow: hidden;
+    }
+
+    #map { width: 100%; height: 100%; }
+
+    .leaflet-tile-pane {
+      filter: saturate(0.3) brightness(0.35) hue-rotate(195deg);
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--bg2) !important;
+      color: var(--t1) !important;
+      border: 1px solid var(--border2) !important;
+      border-radius: var(--r) !important;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7) !important;
+    }
+
+    .leaflet-popup-tip { background: var(--bg2) !important; }
+    .leaflet-popup-close-button { color: var(--t3) !important; }
+
+    .popup { min-width: 240px; font-family: 'DM Sans', sans-serif; }
+
+    .popup-head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .popup-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .popup-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 700;
+    }
+
+    .popup-id {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--t3);
+    }
+
+    .popup-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+
+    .popup-row .k { color: var(--t3); font-weight: 500; }
+    .popup-row .v {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--t1); font-weight: 600;
+    }
+
+    .popup-sep { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+    .leaflet-control-zoom a {
+      background: var(--bg2) !important;
+      color: var(--t1) !important;
+      border-color: var(--border2) !important;
+    }
+
+    .leaflet-control-zoom a:hover { background: var(--bg3) !important; }
+
+    .leaflet-control-attribution {
+      background: rgba(6,8,16,0.85) !important;
+      color: var(--t3) !important; font-size: 8px !important;
+    }
+
+    .leaflet-control-attribution a { color: var(--t3) !important; }
+
+    /* Cluster styles */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+      background: rgba(79,142,255,0.15) !important;
+      border: 1px solid rgba(79,142,255,0.4) !important;
+    }
+
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+      background: var(--accent) !important;
+      color: #fff !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-weight: 700 !important; font-size: 11px !important;
+    }
+
+    /* Map overlays */
+    .map-overlay {
+      position: absolute; z-index: 500;
+      pointer-events: none;
+    }
+
+    .map-legend {
+      bottom: 16px; right: 14px;
+      pointer-events: all;
+      background: rgba(6,8,16,0.92);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 14px;
+      backdrop-filter: blur(20px);
+      min-width: 190px;
+    }
+
+    .legend-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--t3); margin-bottom: 10px;
+    }
+
+    .legend-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11px; font-weight: 600; color: var(--t2);
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    .map-search {
+      top: 12px; left: 12px; right: 12px;
+      pointer-events: all;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .rpanel {
+      border-left: 1px solid var(--border);
+      background: var(--bg1);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .rpanel::-webkit-scrollbar { width: 4px; }
+    .rpanel::-webkit-scrollbar-track { background: transparent; }
+    .rpanel::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 99px; }
+
+    .rpanel-section {
+      border-bottom: 1px solid var(--border);
+      padding: 14px;
+    }
+
+    .rp-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--t3); margin-bottom: 12px;
+    }
+
+    /* Mini bar chart */
+    .mini-chart {
+      display: flex; align-items: flex-end; gap: 4px;
+      height: 50px; margin-bottom: 8px;
+    }
+
+    .chart-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      min-width: 0; position: relative;
+      transition: height 0.5s ease, opacity 0.2s;
+      cursor: default;
+    }
+
+    .chart-bar:hover { opacity: 0.8; }
+
+    .chart-labels {
+      display: flex; justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; color: var(--t3);
+    }
+
+    /* Stats list */
+    .stat-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row .sk { color: var(--t3); font-weight: 500; }
+
+    .stat-row .sv {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700; color: var(--t1);
+    }
+
+    /* Device list */
+    .device-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .device-row:last-child { border-bottom: none; }
+
+    .device-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--minor); flex-shrink: 0;
+    }
+
+    .device-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--t2);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .device-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 1px 5px; border-radius: 4px;
+    }
+
+    /* Heatmap severity breakdown */
+    .sev-bars { display: flex; flex-direction: column; gap: 6px; }
+
+    .sev-bar-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .sev-bar-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700; color: var(--t3);
+      width: 20px; text-transform: uppercase;
+    }
+
+    .sev-bar-track {
+      flex: 1; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden;
+    }
+
+    .sev-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+    .sev-bar-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700; color: var(--t2);
+      width: 20px; text-align: right;
+    }
+
+    /* Event log */
+    .evlog {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 200px; overflow-y: auto;
+    }
+
+    .evlog::-webkit-scrollbar { width: 3px; }
+    .evlog::-webkit-scrollbar-track { background: transparent; }
+    .evlog::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 99px; }
+
+    .evlog-item {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 10px;
+    }
+
+    .evlog-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--t3); flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .evlog-text { color: var(--t2); line-height: 1.4; }
+    .evlog-text strong { color: var(--t1); font-weight: 600; }
+
+    /* Toast */
+    .toast-stack {
+      position: fixed; bottom: 20px; right: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9998; align-items: flex-end;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: var(--r-sm);
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--t1);
+      font-size: 12px; font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: toastIn 0.3s ease;
+      max-width: 280px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .toast.toast-out {
+      animation: toastOut 0.3s ease forwards;
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(20px); }
+    }
+
+    .toast.t-ok { border-color: var(--minor); }
+    .toast.t-err { border-color: var(--severe); }
+    .toast.t-warn { border-color: var(--moderate); }
+    .toast.t-info { border-color: var(--accent); }
+
+    /* Selected card detail */
+    .detail-panel {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 500;
+      background: rgba(6,8,16,0.95);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      backdrop-filter: blur(20px);
+      min-width: 300px;
+      display: none;
+    }
+
+    .detail-panel.visible { display: block; animation: slideUp 0.3s ease; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 1300px) {
+      .workspace { grid-template-columns: 320px 1fr 0; }
+      .rpanel { display: none; }
+      .metrics { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media (max-width: 900px) {
+      html, body { overflow: auto; }
+      .app { height: auto; grid-template-rows: auto auto 1fr; }
+      .workspace { grid-template-columns: 1fr; grid-template-rows: 400px 1fr; }
+      .sidebar { order: 2; }
+      .map-wrap { order: 1; min-height: 400px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">SX</span>
+      <div>
+        <div class="brand-name">Pothole Intelligence</div>
+        <div class="brand-sub">Real-time Road Surface Monitor</div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div class="conn-pill" id="conn-pill">
+        <span class="conn-dot"></span>
+        <span id="conn-text">Connecting</span>
+      </div>
+      <div>
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="last-sync" id="last-sync">Last sync: —</div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-primary" onclick="exportPDF()">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Export PDF
+      </button>
+      <button class="btn btn-danger" onclick="confirmClear()">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Clear
+      </button>
+    </div>
+  </header>
+
+  <!-- METRICS -->
+  <section class="metrics">
+    <div class="metric m-total">
+      <div class="metric-label">Total Reports</div>
+      <div><span class="metric-value" id="m-total">0</span></div>
+      <div class="metric-trend" id="m-total-trend">—</div>
+    </div>
+    <div class="metric m-severe">
+      <div class="metric-label">Severe</div>
+      <div><span class="metric-value" id="m-severe">0</span><span class="metric-unit">> 5g</span></div>
+    </div>
+    <div class="metric m-moderate">
+      <div class="metric-label">Moderate</div>
+      <div><span class="metric-value" id="m-moderate">0</span><span class="metric-unit">3-5g</span></div>
+    </div>
+    <div class="metric m-minor">
+      <div class="metric-label">Minor</div>
+      <div><span class="metric-value" id="m-minor">0</span><span class="metric-unit">< 3g</span></div>
+    </div>
+  </section>
+
+  <!-- WORKSPACE -->
+  <main class="workspace">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-title-row">
+          <span class="sidebar-title">Reports Feed</span>
+          <span class="badge" id="feed-count">0</span>
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" id="search" placeholder="Search by device, coords, severity..." oninput="doSearch()">
+        </div>
+        <div class="filter-row">
+          <button class="chip active" data-filter="all" onclick="setFilter('all',this)">ALL</button>
+          <button class="chip chip-severe" data-filter="Severe" onclick="setFilter('Severe',this)">SEV</button>
+          <button class="chip chip-moderate" data-filter="Moderate" onclick="setFilter('Moderate',this)">MOD</button>
+          <button class="chip chip-minor" data-filter="Minor" onclick="setFilter('Minor',this)">MIN</button>
+        </div>
+      </div>
+      <div class="sort-row">
+        <span class="sort-label">SORT BY</span>
+        <div class="sort-btns">
+          <button class="sort-btn active" onclick="setSort('time',this)">Time</button>
+          <button class="sort-btn" onclick="setSort('severity',this)">Sev</button>
+          <button class="sort-btn" onclick="setSort('confidence',this)">Conf</button>
+          <button class="sort-btn" onclick="setSort('gforce',this)">G</button>
+        </div>
+      </div>
+      <div class="feed" id="feed">
+        <div class="feed-empty">
+          <span style="font-size:28px; opacity:0.3">◉</span>
+          Waiting for sensor data...
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAP -->
+    <div class="map-wrap">
+      <div id="map"></div>
+
+      <aside class="map-overlay map-legend">
+        <div class="legend-title">Severity Scale</div>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:var(--severe); box-shadow:0 0 8px var(--severe);"></span>
+          <span style="flex:1">Severe</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">≥ 5g</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:var(--moderate); box-shadow:0 0 8px var(--moderate);"></span>
+          <span style="flex:1">Moderate</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">3–5g</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:var(--minor); box-shadow:0 0 8px var(--minor);"></span>
+          <span style="flex:1">Minor</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">< 3g</span>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0 8px">
+        <div id="map-stats" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);line-height:1.7">
+          Markers: 0
+        </div>
+      </aside>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <aside class="rpanel">
+
+      <!-- Hourly mini chart -->
+      <div class="rpanel-section">
+        <div class="rp-title">Detections / Hour (last 8h)</div>
+        <div class="mini-chart" id="mini-chart"></div>
+        <div class="chart-labels" id="chart-labels"></div>
+      </div>
+
+      <!-- Severity breakdown -->
+      <div class="rpanel-section">
+        <div class="rp-title">Severity Breakdown</div>
+        <div class="sev-bars">
+          <div class="sev-bar-row">
+            <span class="sev-bar-label" style="color:var(--severe)">SEV</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill" id="bar-severe" style="background:var(--severe);width:0%"></div></div>
+            <span class="sev-bar-val" id="bar-severe-val">0</span>
+          </div>
+          <div class="sev-bar-row">
+            <span class="sev-bar-label" style="color:var(--moderate)">MOD</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill" id="bar-moderate" style="background:var(--moderate);width:0%"></div></div>
+            <span class="sev-bar-val" id="bar-moderate-val">0</span>
+          </div>
+          <div class="sev-bar-row">
+            <span class="sev-bar-label" style="color:var(--minor)">MIN</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill" id="bar-minor" style="background:var(--minor);width:0%"></div></div>
+            <span class="sev-bar-val" id="bar-minor-val">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key stats -->
+      <div class="rpanel-section">
+        <div class="rp-title">Session Stats</div>
+        <div class="stat-row">
+          <span class="sk">Peak G-Force</span>
+          <span class="sv" id="stat-peakg">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="sk">Avg HDOP</span>
+          <span class="sv" id="stat-hdop">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="sk">Avg Sats</span>
+          <span class="sv" id="stat-sats">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="sk">GPS Valid</span>
+          <span class="sv" id="stat-gpsvalid">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="sk">Buffered</span>
+          <span class="sv" id="stat-buffered">0</span>
+        </div>
+      </div>
+
+      <!-- Event log -->
+      <div class="rpanel-section">
+        <div class="rp-title">Event Log</div>
+        <div class="evlog" id="evlog">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">No events</div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  FIREBASE INIT
+// ═══════════════════════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey: "kgB5RA7NGONmr5TU0riMgrRQIphpkwlYFR3LCo7l",
+  authDomain: "pothole-map-38d98.firebaseapp.com",
+  databaseURL: "https://pothole-map-38d98-default-rtdb.firebaseio.com",
+  projectId: "pothole-map-38d98",
+  storageBucket: "pothole-map-38d98.firebasestorage.app",
+  messagingSenderId: "959008459957",
+  appId: "1:959008459957:web:e66c61d49c240ffde802fc"
+});
+
+const db = firebase.database();
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  reports: {},           // key → data
+  receivedAt: {},        // key → browser timestamp (fallback only)
+  markers: {},           // key → leaflet marker
+  counts: { total: 0, Severe: 0, Moderate: 0, Minor: 0 },
+  filter: 'all',
+  sort: 'time',
+  search: '',
+  clusterEnabled: true,
+  sessionStart: Date.now(),
+  lastSyncTime: null,
+  feedInitialized: false,
+  hourlyBuckets: {},     // hourStr → count
+  devices: {},           // deviceId → count
+  evlogItems: [],
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CLOCK + UPTIME
+// ═══════════════════════════════════════════════════════════════
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const mins = Math.floor((Date.now() - state.sessionStart) / 60000);
+  document.getElementById('m-uptime').textContent = mins;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════════════════════════
+//  MAP SETUP
+// ═══════════════════════════════════════════════════════════════
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: true,
+  preferCanvas: true
+}).setView([19.076, 72.8777], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+  maxZoom: 19
+}).addTo(map);
+
+// Cluster group
+let clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 60,
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+// Plain layer group (when clustering disabled)
+const plainGroup = L.layerGroup();
+
+function toggleCluster() {
+  state.clusterEnabled = !state.clusterEnabled;
+  const btn = document.getElementById('toggle-cluster-btn');
+  if (state.clusterEnabled) {
+    plainGroup.clearLayers();
+    map.removeLayer(plainGroup);
+    map.addLayer(clusterGroup);
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  } else {
+    clusterGroup.clearLayers();
+    map.removeLayer(clusterGroup);
+    map.addLayer(plainGroup);
+    // Re-add all markers to plain group
+    Object.entries(state.markers).forEach(([key, m]) => plainGroup.addLayer(m));
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+  }
+  showToast('Clustering ' + (state.clusterEnabled ? 'enabled' : 'disabled'), 'info');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MARKER HELPERS
+// ═══════════════════════════════════════════════════════════════
+function sevColor(s) {
+  if (s === 'Severe') return '#ff3b5c';
+  if (s === 'Moderate') return '#ff9f0a';
+  return '#30d158';
+}
+
+function sevGlow(s) {
+  if (s === 'Severe') return 'rgba(255,59,92,0.5)';
+  if (s === 'Moderate') return 'rgba(255,159,10,0.5)';
+  return 'rgba(48,209,88,0.5)';
+}
+
+function makeIcon(sev, confirmed) {
+  const c = sevColor(sev), g = sevGlow(sev);
+  const outer = confirmed ? 28 : 22;
+  const inner = outer - 8;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${outer}px;height:${outer}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${g};box-shadow:0 0 20px 6px ${g};">
+             <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,0.7);"></div>
+           </div>`,
+    iconSize: [outer, outer],
+    iconAnchor: [outer / 2, outer / 2]
+  });
+}
+
+function popupHtml(d, key) {
+  const sev = d.severity || 'Minor';
+  const c = sevColor(sev);
+  const ts = d.timestamp_ms ? new Date(d.timestamp_ms).toLocaleString('en-IN') : '—';
+  return `<div class="popup">
+    <div class="popup-head">
+      <span class="popup-dot" style="background:${c};color:${c};box-shadow:0 0 10px ${c};"></span>
+      <span class="popup-title">${sev.toUpperCase()} POTHOLE</span>
+      <span class="popup-id">#${key.slice(-6)}</span>
+    </div>
+    <div class="popup-row"><span class="k">G-Force</span><span class="v">${d.g_force ? d.g_force.toFixed(2) + 'g' : '—'}</span></div>
+    <div class="popup-row"><span class="k">Confidence</span><span class="v">${d.confidence ? Math.round(d.confidence * 100) + '%' : '—'}</span></div>
+    <div class="popup-row"><span class="k">Speed</span><span class="v">${d.speed_kmh ? d.speed_kmh.toFixed(1) + ' km/h' : '—'}</span></div>
+    <hr class="popup-sep">
+    <div class="popup-row"><span class="k">Latitude</span><span class="v">${typeof d.lat === 'number' ? d.lat.toFixed(6) : '—'}</span></div>
+    <div class="popup-row"><span class="k">Longitude</span><span class="v">${typeof d.lng === 'number' ? d.lng.toFixed(6) : '—'}</span></div>
+    <hr class="popup-sep">
+    <div class="popup-row"><span class="k">Device</span><span class="v">${d.device_id || '—'}</span></div>
+    <div class="popup-row"><span class="k">Satellites</span><span class="v">${d.satellites || '—'}</span></div>
+    <div class="popup-row"><span class="k">HDOP</span><span class="v">${d.hdop ? d.hdop.toFixed(1) : '—'}</span></div>
+    <div class="popup-row"><span class="k">Battery</span><span class="v">${d.battery_v ? d.battery_v.toFixed(1) + 'V' : '—'}</span></div>
+    <div class="popup-row"><span class="k">Firmware</span><span class="v">${d.firmware || '—'}</span></div>
+    <div class="popup-row"><span class="k">Detected</span><span class="v">${ts}</span></div>
+    <div class="popup-row"><span class="k">Status</span><span class="v" style="color:${d.confirmed ? 'var(--minor)' : 'var(--t3)'}">${d.confirmed ? '✓ Confirmed' : 'Unconfirmed'}</span></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TIME HELPERS — uses actual timestamp_ms from Firebase
+// ═══════════════════════════════════════════════════════════════
+function timeAgo(key) {
+  const d = state.reports[key];
+  // Prefer actual detection timestamp from ESP32, fallback to browser receive time
+  const ts = (d && d.timestamp_ms && d.timestamp_ms > 1000000000000)
+             ? d.timestamp_ms
+             : state.receivedAt[key];
+  if (!ts) return 'just now';
+  const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (sec < 10) return 'just now';
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+
+// BUGFIX: Update all time labels every 15 seconds
+setInterval(() => {
+  document.querySelectorAll('.rcard').forEach(card => {
+    const key = card.dataset.key;
+    const el = card.querySelector('.rcard-time');
+    if (el && key) el.textContent = timeAgo(key);
+  });
+}, 15000);
+
+// ═══════════════════════════════════════════════════════════════
+//  FEED RENDERING
+// ═══════════════════════════════════════════════════════════════
+function coordStr(lat, lng) {
+  if (typeof lat !== 'number') return '— , —';
+  return lat.toFixed(5) + ', ' + lng.toFixed(5);
+}
+
+function isNew(key) {
+  const ts = state.receivedAt[key];
+  return ts && (Date.now() - ts) < 10000;
+}
+
+function buildCard(key, data) {
+  const sev = data.severity || 'Minor';
+  const conf = data.confidence ? Math.round(data.confidence * 100) : 0;
+  const gf = data.g_force ? data.g_force.toFixed(1) + 'g' : '—';
+  const spd = data.speed_kmh ? data.speed_kmh.toFixed(0) + ' km/h' : '—';
+  const sat = data.satellites ? data.satellites + ' sat' : '';
+
+  const card = document.createElement('article');
+  card.className = `rcard s-${sev}`;
+  card.id = 'card-' + key;
+  card.dataset.key = key;
+  card.dataset.severity = sev;
+  card.dataset.conf = data.confidence || 0;
+  card.dataset.gforce = data.g_force || 0;
+  card.dataset.ts = data.timestamp_ms || state.receivedAt[key] || 0;
+
+  card.innerHTML = `
+    <div class="rcard-top">
+      <span class="sev-badge sb-${sev}">${sev}</span>
+      ${conf > 0 ? `<span class="conf-pill">${conf}%</span>` : ''}
+      ${isNew(key) ? '<span class="new-tag">NEW</span>' : ''}
+      <div class="rcard-menu">
+        <button class="dots" onclick="event.stopPropagation();toggleMenu(this)">⋮</button>
+        <div class="ddmenu">
+          <button class="dditem dd-ok" onclick="event.stopPropagation();doAction('${key}','fixed')">✓ Mark Fixed</button>
+          <button class="dditem dd-warn" onclick="event.stopPropagation();doAction('${key}','false')">✗ False Report</button>
+          <button class="dditem dd-del" onclick="event.stopPropagation();doAction('${key}','delete')">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+    <div class="rcard-coords">${coordStr(data.lat, data.lng)}</div>
+    <div class="rcard-meta">
+      <span>${gf}</span>
+      <span>${spd}</span>
+      ${sat ? `<span>${sat}</span>` : ''}
+      <span class="rcard-time">${timeAgo(key)}</span>
+    </div>
+    ${conf > 0 ? `<div class="rcard-bar"><div class="rcard-bar-fill" style="width:${conf}%"></div></div>` : ''}
+  `;
+
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.rcard.selected').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    if (typeof data.lat === 'number') {
+      map.flyTo([data.lat, data.lng], 17, { duration: 0.7 });
+      if (state.markers[key]) state.markers[key].openPopup();
+    }
+  });
+
+  return card;
+}
+
+function shouldShowCard(key, data) {
+  const sev = data.severity || 'Minor';
+  if (state.filter !== 'all' && state.filter !== sev) return false;
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    const text = [
+      sev, data.device_id, coordStr(data.lat, data.lng),
+      data.firmware, data.g_force
+    ].join(' ').toLowerCase();
+    if (!text.includes(q)) return false;
+  }
+  return true;
+}
+
+function sortedKeys() {
+  const keys = Object.keys(state.reports);
+  return keys.sort((a, b) => {
+    const da = state.reports[a], db2 = state.reports[b];
+    if (state.sort === 'severity') {
+      const order = { Severe: 0, Moderate: 1, Minor: 2 };
+      return (order[da.severity] || 2) - (order[db2.severity] || 2);
+    }
+    if (state.sort === 'confidence') return (db2.confidence || 0) - (da.confidence || 0);
+    if (state.sort === 'gforce') return (db2.g_force || 0) - (da.g_force || 0);
+    // time (default)
+    const ta = da.timestamp_ms || state.receivedAt[a] || 0;
+    const tb = db2.timestamp_ms || state.receivedAt[b] || 0;
+    return tb - ta;
+  });
+}
+
+function rebuildFeed() {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+  const keys = sortedKeys();
+  let shown = 0;
+  keys.forEach(key => {
+    const data = state.reports[key];
+    if (!shouldShowCard(key, data)) return;
+    feed.appendChild(buildCard(key, data));
+    shown++;
+  });
+  if (shown === 0) {
+    feed.innerHTML = `<div class="feed-empty"><span style="font-size:24px;opacity:0.3">◎</span>${state.filter !== 'all' || state.search ? 'No matches' : 'Waiting for sensor data...'}</div>`;
+  }
+}
+
+function addOrUpdateCard(key, data, isUpdate) {
+  const feed = document.getElementById('feed');
+
+  // Clear empty state
+  if (!state.feedInitialized) {
+    feed.innerHTML = '';
+    state.feedInitialized = true;
+  }
+
+  const existing = document.getElementById('card-' + key);
+  if (existing) existing.remove();
+
+  if (!shouldShowCard(key, data)) return;
+
+  const card = buildCard(key, data);
+
+  // Insert in sorted position
+  if (state.sort === 'time') {
+    feed.insertBefore(card, feed.firstChild);
+  } else {
+    rebuildFeed();
+    return;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FILTER / SORT / SEARCH
+// ═══════════════════════════════════════════════════════════════
+function setFilter(f, btn) {
+  state.filter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  rebuildFeed();
+}
+
+function setSort(s, btn) {
+  state.sort = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  rebuildFeed();
+}
+
+function doSearch() {
+  state.search = document.getElementById('search').value.trim();
+  rebuildFeed();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  METRICS UPDATE
+// ═══════════════════════════════════════════════════════════════
+function updateMetrics() {
+  document.getElementById('m-total').textContent = state.counts.total;
+  document.getElementById('m-severe').textContent = state.counts.Severe;
+  document.getElementById('m-moderate').textContent = state.counts.Moderate;
+  document.getElementById('m-minor').textContent = state.counts.Minor;
+  document.getElementById('feed-count').textContent = state.counts.total;
+
+  const entries = Object.values(state.reports);
+
+  if (entries.length > 0) {
+    const confs = entries.filter(e => e.confidence).map(e => e.confidence);
+    if (confs.length) {
+      const avg = confs.reduce((a, b) => a + b, 0) / confs.length;
+      document.getElementById('m-conf').textContent = Math.round(avg * 100);
+    }
+
+    const spds = entries.filter(e => e.speed_kmh > 0).map(e => e.speed_kmh);
+    if (spds.length) {
+      const avg = spds.reduce((a, b) => a + b, 0) / spds.length;
+      document.getElementById('m-speed').textContent = Math.round(avg);
+    }
+
+    // Map stats
+    document.getElementById('map-stats').textContent = `Markers: ${Object.keys(state.markers).length}`;
+
+    // Severity bars
+    const total = state.counts.total || 1;
+    const sevPct = s => Math.round((state.counts[s] / total) * 100);
+    ['severe', 'moderate', 'minor'].forEach(s => {
+      const key = s.charAt(0).toUpperCase() + s.slice(1);
+      document.getElementById(`bar-${s}`).style.width = sevPct(key) + '%';
+      document.getElementById(`bar-${s}-val`).textContent = state.counts[key];
+    });
+
+    // Session stats
+    const peakG = Math.max(...entries.filter(e => e.g_force).map(e => e.g_force));
+    if (isFinite(peakG)) document.getElementById('stat-peakg').textContent = peakG.toFixed(2) + 'g';
+
+    const hdops = entries.filter(e => e.hdop).map(e => e.hdop);
+    if (hdops.length) {
+      const avg = hdops.reduce((a, b) => a + b, 0) / hdops.length;
+      document.getElementById('stat-hdop').textContent = avg.toFixed(1);
+    }
+
+    const sats = entries.filter(e => e.satellites).map(e => e.satellites);
+    if (sats.length) {
+      const avg = sats.reduce((a, b) => a + b, 0) / sats.length;
+      document.getElementById('stat-sats').textContent = avg.toFixed(1);
+    }
+
+    const gpsValid = entries.filter(e => e.gps_valid).length;
+    document.getElementById('stat-gpsvalid').textContent = `${gpsValid}/${entries.length}`;
+
+    const buffered = entries.filter(e => e.from_buffer).length;
+    document.getElementById('stat-buffered').textContent = buffered;
+
+    // Trend label
+    document.getElementById('m-total-trend').textContent =
+      state.counts.Severe > 0 ? `⚠ ${state.counts.Severe} critical` : 'No critical alerts';
+  }
+
+  updateDeviceList();
+  updateHourlyChart();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DEVICE LIST
+// ═══════════════════════════════════════════════════════════════
+function updateDeviceList() {
+  const el = document.getElementById('device-list');
+  const devices = state.devices;
+  if (Object.keys(devices).length === 0) {
+    el.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--t3)">No devices yet</div>';
+    return;
+  }
+  el.innerHTML = Object.entries(devices).sort((a, b) => b[1] - a[1]).map(([id, cnt]) => `
+    <div class="device-row">
+      <span class="device-dot"></span>
+      <span class="device-id" title="${id}">${id}</span>
+      <span class="device-count">${cnt}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HOURLY CHART
+// ═══════════════════════════════════════════════════════════════
+function updateHourlyChart() {
+  const chartEl = document.getElementById('mini-chart');
+  const labelsEl = document.getElementById('chart-labels');
+
+  const now = new Date();
+  const buckets = [];
+  const labels = [];
+
+  for (let i = 7; i >= 0; i--) {
+    const h = new Date(now - i * 3600000);
+    const key = `${h.getFullYear()}-${h.getMonth()}-${h.getDate()}-${h.getHours()}`;
+    buckets.push(state.hourlyBuckets[key] || 0);
+    labels.push(h.getHours().toString().padStart(2, '0') + 'h');
+  }
+
+  const maxVal = Math.max(...buckets, 1);
+
+  chartEl.innerHTML = buckets.map((v, i) => {
+    const pct = Math.round((v / maxVal) * 100);
+    const col = v === 0 ? 'var(--bg4)' :
+                v === maxVal ? 'var(--severe)' : 'var(--accent)';
+    return `<div class="chart-bar" style="height:${Math.max(pct, 4)}%;background:${col}" title="${v} detections at ${labels[i]}"></div>`;
+  }).join('');
+
+  labelsEl.innerHTML = `<span>${labels[0]}</span><span>${labels[4]}</span><span>${labels[7]}</span>`;
+}
+
+function recordHourly(ts) {
+  const d = new Date(ts);
+  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+  state.hourlyBuckets[key] = (state.hourlyBuckets[key] || 0) + 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  EVENT LOG
+// ═══════════════════════════════════════════════════════════════
+function addLog(msg) {
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  state.evlogItems.unshift({ time: now, msg });
+  if (state.evlogItems.length > 50) state.evlogItems.pop();
+
+  const el = document.getElementById('evlog');
+  el.innerHTML = state.evlogItems.map(e => `
+    <div class="evlog-item">
+      <span class="evlog-time">${e.time}</span>
+      <span class="evlog-text">${e.msg}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DROPDOWN MENU
+// ═══════════════════════════════════════════════════════════════
+function toggleMenu(btn) {
+  const menu = btn.nextElementSibling;
+  const wasOpen = menu.classList.contains('open');
+  document.querySelectorAll('.ddmenu.open').forEach(m => m.classList.remove('open'));
+  if (!wasOpen) menu.classList.add('open');
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.ddmenu.open').forEach(m => m.classList.remove('open'));
+});
+
+function doAction(key, action) {
+  document.querySelectorAll('.ddmenu.open').forEach(m => m.classList.remove('open'));
+  const labels = { fixed: 'Mark as fixed?', false: 'Mark as false report?', delete: 'Delete this entry?' };
+  if (!confirm(labels[action])) return;
+  db.ref('/potholes/' + key).remove()
+    .then(() => {
+      const msgs = { fixed: '✓ Marked as fixed', false: '✗ Marked as false report', delete: '🗑 Entry deleted' };
+      showToast(msgs[action], 'ok');
+      addLog(`<strong>${action === 'delete' ? 'Deleted' : action === 'fixed' ? 'Fixed' : 'False report'}</strong>: entry #${key.slice(-6)}`);
+    })
+    .catch(err => showToast('Error: ' + err.message, 'err'));
+}
+
+function confirmClear() {
+  if (!confirm('Delete ALL pothole reports? This cannot be undone.')) return;
+  db.ref('/potholes').remove()
+    .then(() => { showToast('All reports cleared', 'warn'); addLog('<strong>Cleared</strong>: all reports deleted'); })
+    .catch(err => showToast('Error: ' + err.message, 'err'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOAST SYSTEM
+// ═══════════════════════════════════════════════════════════════
+function showToast(msg, type = 'info') {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = `toast t-${type}`;
+  const icons = { ok: '✓', err: '✗', warn: '⚠', info: 'ℹ' };
+  t.innerHTML = `<span>${icons[type] || 'ℹ'}</span> ${msg}`;
+  stack.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('toast-out');
+    setTimeout(() => t.remove(), 350);
+  }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FIREBASE LISTENERS
+// ═══════════════════════════════════════════════════════════════
+db.ref('/potholes').on('child_added', snap => {
+  const key = snap.key, data = snap.val();
+  if (!data) return;
+
+  const isInitialLoad = !state.feedInitialized;
+
+  state.reports[key] = data;
+  state.receivedAt[key] = Date.now();
+
+  // Count
+  const sev = data.severity || 'Minor';
+  state.counts.total++;
+  state.counts[sev] = (state.counts[sev] || 0) + 1;
+
+  // Device tracking
+  if (data.device_id) {
+    state.devices[data.device_id] = (state.devices[data.device_id] || 0) + 1;
+  }
+
+  // Hourly bucket
+  const ts = data.timestamp_ms && data.timestamp_ms > 1000000000000 ? data.timestamp_ms : Date.now();
+  recordHourly(ts);
+
+  // Marker
+  if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+    const m = L.marker([data.lat, data.lng], {
+      icon: makeIcon(sev, !!data.confirmed)
+    }).bindPopup(popupHtml(data, key), { maxWidth: 300 });
+
+    state.markers[key] = m;
+
+    if (state.clusterEnabled) clusterGroup.addLayer(m);
+    else plainGroup.addLayer(m);
+  }
+
+  // Feed card
+  addOrUpdateCard(key, data, false);
+  updateMetrics();
+
+  // Log + toast (only for new, not initial load)
+  state.lastSyncTime = new Date();
+  document.getElementById('last-sync').textContent =
+    'Last sync: ' + state.lastSyncTime.toLocaleTimeString('en-IN', { hour12: false });
+
+  if (!isInitialLoad) {
+    addLog(`<strong>${sev} pothole</strong> detected at ${coordStr(data.lat, data.lng)}`);
+    if (sev === 'Severe') {
+      showToast('⚠ Severe pothole detected!', 'err');
+    }
+  }
+});
+
+db.ref('/potholes').on('child_changed', snap => {
+  const key = snap.key, data = snap.val();
+  if (!data) return;
+
+  const oldSev = (state.reports[key] || {}).severity || 'Minor';
+  const newSev = data.severity || 'Minor';
+
+  // Update counts if severity changed
+  if (oldSev !== newSev) {
+    state.counts[oldSev] = Math.max(0, state.counts[oldSev] - 1);
+    state.counts[newSev] = (state.counts[newSev] || 0) + 1;
+  }
+
+  state.reports[key] = data;
+
+  // Update marker
+  if (state.markers[key]) {
+    state.markers[key].setLatLng([data.lat, data.lng]);
+    state.markers[key].setIcon(makeIcon(newSev, !!data.confirmed));
+    state.markers[key].setPopupContent(popupHtml(data, key));
+  }
+
+  // Rebuild card
+  const old = document.getElementById('card-' + key);
+  if (old) old.remove();
+  addOrUpdateCard(key, data, true);
+  updateMetrics();
+});
+
+db.ref('/potholes').on('child_removed', snap => {
+  const key = snap.key, data = snap.val() || {};
+  const sev = data.severity || 'Minor';
+
+  // Remove marker
+  if (state.markers[key]) {
+    if (state.clusterEnabled) clusterGroup.removeLayer(state.markers[key]);
+    else plainGroup.removeLayer(state.markers[key]);
+    delete state.markers[key];
+  }
+
+  // Remove card
+  const card = document.getElementById('card-' + key);
+  if (card) card.remove();
+
+  // Update counts
+  delete state.reports[key];
+  delete state.receivedAt[key];
+  state.counts.total = Math.max(0, state.counts.total - 1);
+  state.counts[sev] = Math.max(0, state.counts[sev] - 1);
+
+  // Reset device count
+  if (data.device_id && state.devices[data.device_id]) {
+    state.devices[data.device_id]--;
+    if (state.devices[data.device_id] <= 0) delete state.devices[data.device_id];
+  }
+
+  updateMetrics();
+
+  if (state.counts.total === 0) {
+    state.feedInitialized = false;
+    document.getElementById('feed').innerHTML =
+      '<div class="feed-empty"><span style="font-size:28px;opacity:0.3">◉</span>Waiting for sensor data...</div>';
+  }
+});
+
+// Connection status
+db.ref('.info/connected').on('value', snap => {
+  const pill = document.getElementById('conn-pill');
+  const text = document.getElementById('conn-text');
+  if (snap.val()) {
+    pill.classList.add('live');
+    text.textContent = 'LIVE';
+    addLog('<strong>Connected</strong> to Firebase Realtime DB');
+  } else {
+    pill.classList.remove('live');
+    text.textContent = 'OFFLINE';
+    addLog('<strong>Disconnected</strong> — attempting to reconnect...');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PDF EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportPDF() {
+  try {
+    if (!window.jspdf) { showToast('PDF library loading, try again', 'warn'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const entries = Object.values(state.reports);
+    const now = new Date();
+
+    // Header background
+    doc.setFillColor(6, 8, 16);
+    doc.rect(0, 0, 210, 48, 'F');
+
+    // Accent line
+    doc.setDrawColor(79, 142, 255);
+    doc.setLineWidth(0.8);
+    doc.line(0, 48, 210, 48);
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(232, 237, 245);
+    doc.text('POTHOLE INCIDENT REPORT', 14, 20);
+
+    // Subtitle
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(72, 85, 104);
+    doc.text('SusX Pothole Intelligence Platform', 14, 28);
+    doc.text(now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+      + '  ·  ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }), 14, 34);
+
+    // Ref number
+    doc.setTextColor(79, 142, 255);
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(8);
+    doc.text('REF: SX-' + now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + String(entries.length).padStart(4, '0'), 14, 42);
+
+    // Summary table
+    let y = 60;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Executive Summary', 14, y);
+
+    const avgConf = entries.filter(e => e.confidence).map(e => e.confidence);
+    const avgConfStr = avgConf.length > 0
+      ? Math.round(avgConf.reduce((a, b) => a + b, 0) / avgConf.length * 100) + '%' : '—';
+
+    doc.autoTable({
+      startY: y + 4,
+      head: [['Metric', 'Value', 'Note']],
+      body: [
+        ['Total Detections', String(entries.length), 'All severity levels'],
+        ['Severe (Immediate Action)', String(state.counts.Severe), '≥ 5g impact force'],
+        ['Moderate (Schedule Repair)', String(state.counts.Moderate), '3–5g impact force'],
+        ['Minor (Monitor)', String(state.counts.Minor), '< 3g impact force'],
+        ['Average ML Confidence', avgConfStr, 'Multi-axis classification'],
+        ['Report Generated', now.toLocaleString('en-IN'), 'IST'],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [6, 8, 16], fontStyle: 'bold', fontSize: 8.5, textColor: [232, 237, 245] },
+      bodyStyles: { fontSize: 8.5 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 }, 2: { textColor: [100, 116, 139], fontSize: 7.5 } },
+      margin: { left: 14, right: 14 },
+    });
+
+    // Detail table
+    y = doc.lastAutoTable.finalY + 14;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Detailed Incident Log', 14, y);
+
+    const rows = entries.map((e, i) => [
+      String(i + 1),
+      e.severity || 'Minor',
+      typeof e.lat === 'number' ? e.lat.toFixed(6) : '—',
+      typeof e.lng === 'number' ? e.lng.toFixed(6) : '—',
+      e.g_force ? e.g_force.toFixed(2) + 'g' : '—',
+      e.confidence ? Math.round(e.confidence * 100) + '%' : '—',
+      e.speed_kmh ? e.speed_kmh.toFixed(0) + ' km/h' : '—',
+      e.satellites ? String(e.satellites) : '—',
+      e.device_id ? e.device_id.slice(-8) : '—',
+      e.timestamp_ms ? new Date(e.timestamp_ms).toLocaleTimeString('en-IN', { hour12: false }) : '—',
+    ]);
+
+    doc.autoTable({
+      startY: y + 4,
+      head: [['#', 'Sev', 'Lat', 'Lng', 'Force', 'Conf', 'Speed', 'Sats', 'Device', 'Time']],
+      body: rows,
+      theme: 'striped',
+      headStyles: { fillColor: [6, 8, 16], fontSize: 7, textColor: [232, 237, 245] },
+      bodyStyles: { fontSize: 7 },
+      columnStyles: { 0: { cellWidth: 7 }, 1: { cellWidth: 16 } },
+      margin: { left: 14, right: 14 },
+      didParseCell(data) {
+        if (data.section === 'body' && data.column.index === 1) {
+          const v = data.cell.raw;
+          if (v === 'Severe') data.cell.styles.textColor = [255, 59, 92];
+          else if (v === 'Moderate') data.cell.styles.textColor = [255, 159, 10];
+          else data.cell.styles.textColor = [48, 209, 88];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`SusX Pothole Intelligence — Auto-generated by IoT Road Surface Monitor`, 14, 290);
+      doc.text(`Page ${i} of ${pageCount}`, 196, 290, { align: 'right' });
+    }
+
+    doc.save('SusX_Report_' + now.toISOString().slice(0, 10) + '.pdf');
+    showToast('✓ Report exported', 'ok');
+    addLog('<strong>PDF exported</strong>: ' + entries.length + ' records');
+  } catch (err) {
+    showToast('Export failed: ' + err.message, 'err');
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
